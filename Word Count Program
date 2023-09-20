@@ -16,7 +16,7 @@ jps
 hadoop fs -mkdir /input
 
 create a text file named "data.txt" and store it in local disk C.
-hadoop fs -pit C:/data.txt /input
+hadoop fs -put C:/data.txt /input
 hadoop fs -ls /input/
 
 hadoop dfs -cat /input/data.txt
