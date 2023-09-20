@@ -1,0 +1,30 @@
+CMD : 
+
+java -version
+
+javac -version
+
+hadoop
+
+hadoop -version
+
+Windows Power Shell :
+
+hdfs namenode -format   (Y)
+
+C:\hadoopsetup\hadoop-3.2.4\sbin
+
+.\start-dfs.cmd
+
+./start-yarn.cmd
+
+jps
+
+
+
+Data Node Issue : 
+
+C:\hadoopsetup\hadoop-3.2.4\data\dfs\namenode\current   -- Copy Cluster ID From NameNode 
+C:\hadoopsetup\hadoop-3.2.4\data\dfs\datanode\current   -- Replace the Cluster ID here.
+
+jps
