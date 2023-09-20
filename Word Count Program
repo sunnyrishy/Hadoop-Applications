@@ -1,0 +1,30 @@
+Command Prompt -- Run As Administrator
+
+cd..
+
+cd..
+
+cd C:\hadoopsetup\hadoop-3.2.4\sbin
+
+##start_server
+start-dfs
+
+start-yarn
+
+jps
+
+hadoop fs -mkdir /input
+
+create a text file named "data.txt" and store it in local disk C.
+hadoop fs -pit C:/data.txt /input
+hadoop fs -ls /input/
+
+hadoop dfs -cat /input/data.txt
+
+hadoop jar C:/hadoopsetup/hadoop-3.2.4/share/hadoop/mapreduce/hadoop-mapreduce-example-3.2.4.jar
+
+hadoop jar C:/hadoopsetup/hadoop-3.2.4/share/hadoop/mapreduce/hadoop-mapreduce-example-3.2.4.jar wordcount /input /out
+
+hadoop fs -cat /out/*
+
+-- output will be displayed in the terminal.
