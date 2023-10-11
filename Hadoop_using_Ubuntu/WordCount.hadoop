@@ -1,0 +1,144 @@
+### START SERVER -------
+
+sudo service ssh start
+Password :123
+start-all.sh
+jps
+
+### CHECK SERVER IN -------
+
+localhost:9870
+
+### CREATE A SAMPLE WORD DOCUMENT ------
+echo "Hello world, this is a sample text document." > sample.txt
+echo "This is just some random data to demonstrate Wordcount." >>sample.txt
+echo "Hello Hadoop, WordCount is a simple Mapreduce program." >> sample.txt
+  
+  
+### CREATE A DIRECTORY ------
+
+hdfs dfs -mkdir -p /user/sunny/input/
+hdfs dfs -copyFromLocal sample.txt /user/sunny/input/
+
+
+### COMPILE THE JAVA CODE ------
+
+javac -classpath $(hadoop classpath) WordCount.java
+jar -cvf WordCount.jar *.class
+
+
+### COMPILE THE PROGRAM ------
+hadoop jar WordCount.jar WordCount /user/your-username/input/sample.txt /user/sunny/output
+
+
+### OUTPUT ------
+
+ hdfs dfs -cat /user/sunny/output/part-r-00000 
+
+
+
+
+
+
+
+  REFERENCE -------
+
+  INPUT USED : 
+
+Hello world, this is a sample text document.
+This is just some random data to demonstrate Wordcount.
+Hello Hadoop, WordCount is a simple Mapreduce program.
+
+
+  JAVA CODE USED : 
+
+
+import java.io.IOException;
+import java.util.StringTokenizer;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+public class WordCount {
+
+    public static class TokenizerMapper
+            extends Mapper<Object, Text, Text, IntWritable> {
+
+        private final static IntWritable one = new IntWritable(1);
+        private Text word = new Text();
+
+        public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
+            StringTokenizer itr = new StringTokenizer(value.toString());
+            while (itr.hasMoreTokens()) {
+                word.set(itr.nextToken());
+                context.write(word, one);
+            }
+        }
+    }
+
+    public static class IntSumReducer
+            extends Reducer<Text, IntWritable, Text, IntWritable> {
+        private IntWritable result = new IntWritable();
+
+        public void reduce(Text key, Iterable<IntWritable> values,
+                Context context) throws IOException, InterruptedException {
+            int sum = 0;
+            for (IntWritable val : values) {
+                sum += val.get();
+            }
+            result.set(sum);
+            context.write(key, result);
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
+        Configuration conf = new Configuration();
+        Job job = Job.getInstance(conf, "word count");
+        job.setJarByClass(WordCount.class);
+        job.setMapperClass(TokenizerMapper.class);
+        job.setCombinerClass(IntSumReducer.class);
+        job.setReducerClass(IntSumReducer.class);
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(IntWritable.class);
+        FileInputFormat.addInputPath(job, new Path("input/sample.txt")); // Update the input path
+        FileOutputFormat.setOutputPath(job, new Path("output")); // Output directory
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
+    }
+}
+
+
+
+
+OUPUT OBTAINED : 
+
+Hadoop, 1
+Hello   2
+Mapreduce       1
+This    1
+WordCount       1
+Wordcount.      1
+a       2
+data    1
+demonstrate     1
+document.       1
+is      3
+just    1
+program.        1
+random  1
+sample  1
+simple  1
+some    1
+text    1
+this    1
+to      1
+world,  1
+
+
+  
