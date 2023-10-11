@@ -28,7 +28,7 @@ jar -cvf WordCount.jar *.class
 
 
 ### COMPILE THE PROGRAM ------
-hadoop jar WordCount.jar WordCount /user/your-username/input/sample.txt /user/sunny/output
+hadoop jar WordCount.jar WordCount /user/sunny/input/sample.txt /user/sunny/output
 
 
 ### OUTPUT ------
