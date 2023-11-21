@@ -1,0 +1,152 @@
+### START SERVER -------
+
+sudo service ssh start
+Password :123
+start-all.sh
+jps
+
+### CHECK SERVER IN -------
+
+localhost:9870
+
+ ### Sample Input
+Input File 1 (input_file_1.txt):
+
+apple banana orange
+banana pineapple
+orange grape
+apple grapefruit
+
+
+Input File 2 (input_file_2.txt):
+
+apple pear
+banana pineapple
+kiwi orange
+apple grapefruit
+
+
+
+Java Code Compilation and jar : 
+
+javac -classpath $(hadoop classpath) SimilarityJoinMapper.java SimilarityJoinReducer.java SimilarityJoinDriver.java -d classes
+
+
+jar -cvf set_similarity_join.jar -C classes/ .
+
+
+Hadoop Commands : 
+
+hadoop fs -mkdir /input_set
+hadoop fs -put input_file_1.txt /input_set
+hadoop fs -put input_file_2.txt /input_set
+hadoop fs -put set_similarity_join.jar /
+
+Hadoop Job : 
+
+hadoop jar set_similarity_join.jar SimilarityJoinDriver /input_set/input_file_1.txt /input_set/input_file_2.txt /user/sunny/output_setsimilarity
+
+
+View Output : 
+
+hadoop fs -cat /user/sunny/output_setsimilarity/*
+
+
+Java Code Used : 
+
+SimilarityJoinMapper.java
+
+import java.io.IOException;
+import org.apache.hadoop.io.*;
+import org.apache.hadoop.mapreduce.*;
+
+public class SimilarityJoinMapper extends Mapper<LongWritable, Text, Text, Text> {
+    private Text outputKey = new Text();
+    private Text outputValue = new Text();
+
+    public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+        String[] tokens = value.toString().split("\\s+"); // Split by space
+
+        for (String token : tokens) {
+            outputKey.set(token); // Emit each token as key
+
+            // Emit the entire line (set) as value for that key
+            outputValue.set(value.toString());
+            context.write(outputKey, outputValue);
+        }
+    }
+}
+
+
+
+SimilarityJoinReducer.java
+
+
+
+import java.io.IOException;
+import org.apache.hadoop.io.*;
+import org.apache.hadoop.mapreduce.*;
+
+public class SimilarityJoinReducer extends Reducer<Text, Text, Text, Text> {
+    private Text outputValue = new Text();
+
+    public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+        StringBuilder result = new StringBuilder();
+
+        // Combine all sets associated with the same key
+        for (Text value : values) {
+            result.append(value.toString()).append(",");
+        }
+
+        outputValue.set(result.toString());
+        context.write(key, outputValue);
+    }
+}
+
+
+SimilarityJoinDriver.java
+
+
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
+
+public class SimilarityJoinDriver {
+    public static void main(String[] args) throws Exception {
+        Configuration conf = new Configuration();
+        Job job = Job.getInstance(conf, "Set Similarity Join");
+
+        job.setJarByClass(SimilarityJoinDriver.class);
+
+        job.setMapperClass(SimilarityJoinMapper.class);
+        job.setReducerClass(SimilarityJoinReducer.class);
+
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(Text.class);
+
+        job.setInputFormatClass(TextInputFormat.class);
+        job.setOutputFormatClass(TextOutputFormat.class);
+
+        TextInputFormat.addInputPath(job, new Path(args[0]));
+        TextOutputFormat.setOutputPath(job, new Path("/user/sunny/output_setsimilarity"));
+
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
+    }
+}
+
+
+
+
+Output : 
+
+
+apple   apple grapefruit,apple banana orange,
+banana  banana pineapple,apple banana orange,
+grape   orange grape,
+grapefruit      apple grapefruit,
+orange  orange grape,apple banana orange,
+pineapple       banana pineapple,
