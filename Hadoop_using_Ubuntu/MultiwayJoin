@@ -1,0 +1,147 @@
+### START SERVER -------
+
+sudo service ssh start
+Password :123
+start-all.sh
+jps
+
+### CHECK SERVER IN -------
+
+localhost:9870
+
+
+ ### Sample Input
+Input File 1 (input1.txt):
+
+apple, red, fruit
+banana, yellow, fruit
+orange, orange, fruit
+
+
+
+ ### Sample Input
+Input File 2 (input2.txt):
+
+apple, Washington, USA
+banana, Guayaquil, Ecuador
+orange, Valencia, Spain
+
+
+ ### Sample Input
+Input File 3 (input3.txt):
+
+apple, 5, 10
+banana, 8, 15
+orange, 6, 12
+
+
+Upload Files To HDFS----
+
+hadoop fs -mkdir -p /user/sunny/input1
+hadoop fs -mkdir -p /user/sunny/input2
+hadoop fs -mkdir -p /user/sunny/input3
+
+hadoop fs -put input1.txt /user/sunny/input1/
+hadoop fs -put input2.txt /user/sunny/input2/
+hadoop fs -put input3.txt /user/sunny/input3/
+
+
+Java Code Compilation and jar : 
+
+javac -classpath $(hadoop classpath) MultiwayJoin.java
+
+
+jar -cvf MultiwayJoin.jar *.class
+
+Hadoop Job : 
+
+ hadoop jar MultiwayJoin.jar MultiwayJoin /user/sunny/input1 /user/sunny/input2 /user/sunny/input3 /user/sunny/output_multiwayjoin
+
+
+
+View Output : 
+
+hadoop fs -cat /user/sunny/output_directory/*
+
+
+
+
+Java Code Used : 
+
+
+
+import java.io.IOException;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.*;
+import org.apache.hadoop.mapreduce.*;
+
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.MultipleInputs;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+public class MultiwayJoin {
+
+    public static class Map extends Mapper<LongWritable, Text, Text, Text> {
+        private Text joinKey = new Text();
+        private Text record = new Text();
+
+        public void map(LongWritable key, Text value, Context context)
+                throws IOException, InterruptedException {
+
+            String[] tokens = value.toString().split(",");
+
+            // Assuming the first value in each line is the key
+            joinKey.set(tokens[0]);
+            record.set(tokens[1] + "," + tokens[2]); // Concatenating values for the same key
+
+            context.write(joinKey, record);
+        }
+    }
+
+    public static class Reduce extends Reducer<Text, Text, Text, Text> {
+        public void reduce(Text key, Iterable<Text> values, Context context)
+                throws IOException, InterruptedException {
+
+            StringBuilder output = new StringBuilder();
+
+            for (Text value : values) {
+                output.append(value.toString()).append(",");
+            }
+
+            // Removing the trailing comma and emitting the joined values
+            context.write(key, new Text(output.toString().replaceAll(",$", "")));
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
+        Configuration conf = new Configuration();
+        Job job = Job.getInstance(conf, "multiway join");
+
+        job.setJarByClass(MultiwayJoin.class);
+        job.setMapperClass(Map.class);
+        job.setReducerClass(Reduce.class);
+
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(Text.class);
+
+        for (int i = 0; i < args.length - 1; i++) {
+            MultipleInputs.addInputPath(job, new Path(args[i]), TextInputFormat.class, Map.class);
+        }
+
+        FileOutputFormat.setOutputPath(job, new Path("/user/sunny/output_directory"));
+
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
+    }
+}
+
+
+
+
+
+Output : 
+
+
+apple    5, 10, red, fruit, Washington, USA
+banana   Guayaquil, Ecuador, 8, 15, yellow, fruit
+orange   orange, fruit, 6, 12, Valencia, Spain
